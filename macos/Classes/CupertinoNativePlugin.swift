@@ -33,8 +33,47 @@ public class CupertinoNativePlugin: NSObject, FlutterPlugin {
     switch call.method {
     case "getPlatformVersion":
       result("macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
+    case "showAlert":
+      guard let args = call.arguments as? [String: Any] else {
+        result(FlutterError(code: "bad_args", message: "Expected map for showAlert", details: nil))
+        return
+      }
+      presentAlert(with: args, result: result)
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private func presentAlert(with args: [String: Any], result: @escaping FlutterResult) {
+    let alert = NSAlert()
+    if let title = args["title"] as? String { alert.messageText = title }
+    if let message = args["message"] as? String { alert.informativeText = message }
+    alert.alertStyle = .informational
+
+    var hasActions = false
+    if let actions = args["actions"] as? [[String: Any]] {
+      hasActions = !actions.isEmpty
+      for action in actions {
+        let label = (action["label"] as? String) ?? "OK"
+        alert.addButton(withTitle: label)
+      }
+    }
+    if !hasActions {
+      alert.addButton(withTitle: "OK")
+    }
+
+    if let window = NSApp.keyWindow {
+      alert.beginSheetModal(for: window) { response in
+        // NSApplication.ModalResponse for first button is .alertFirstButtonReturn (1000)
+        let base = NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        let index = Int(response.rawValue - base)
+        result(index)
+      }
+    } else {
+      let response = alert.runModal()
+      let base = NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+      let index = Int(response.rawValue - base)
+      result(index)
     }
   }
 }

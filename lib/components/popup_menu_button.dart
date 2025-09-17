@@ -142,52 +142,92 @@ class _CNPopupMenuButtonState extends State<CNPopupMenuButton> {
 
   @override
   Widget build(BuildContext context) {
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      // Fallback Flutter implementation
+    // Detect if this route is covered by a modal/sheet. When covered, avoid
+    // embedding a platform view (which would draw above overlays) and show a
+    // Flutter placeholder that matches size/tint approximately.
+    final route = ModalRoute.of(context);
+    final isCoveredByModal = route?.isCurrent != true;
+
+    if (isCoveredByModal ||
+        !(defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      // Flutter placeholder / non-Apple fallback
+      final Color? tint = _effectiveTint;
+      final bool disabled = isCoveredByModal; // disable when overlaid
+      final BorderRadius radius = widget.round
+          ? BorderRadius.circular(999)
+          : const BorderRadius.all(Radius.circular(8));
+
+      // Basic style mapping for background color in placeholder
+      Color? background;
+      switch (widget.buttonStyle) {
+        case CNButtonStyle.filled:
+        case CNButtonStyle.borderedProminent:
+        case CNButtonStyle.prominentGlass:
+          background = tint;
+          break;
+        case CNButtonStyle.glass:
+          background = (tint ?? CupertinoTheme.of(context).primaryColor)
+              .withOpacity(0.22);
+          break;
+        default:
+          background = null;
+      }
+
+      Widget inner = CupertinoButton(
+        padding: widget.isIconButton
+            ? const EdgeInsets.all(4)
+            : const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        onPressed: disabled
+            ? null
+            : () async {
+                final selected = await showCupertinoModalPopup<int>(
+                  context: context,
+                  builder: (ctx) {
+                    return CupertinoActionSheet(
+                      title: widget.buttonLabel != null
+                          ? Text(widget.buttonLabel!)
+                          : null,
+                      actions: [
+                        for (var i = 0; i < widget.items.length; i++)
+                          if (widget.items[i] is CNPopupMenuItem)
+                            CupertinoActionSheetAction(
+                              onPressed: () => Navigator.of(ctx).pop(i),
+                              child: Text(
+                                (widget.items[i] as CNPopupMenuItem).label,
+                              ),
+                            )
+                          else
+                            const SizedBox(height: 8),
+                      ],
+                      cancelButton: CupertinoActionSheetAction(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        isDefaultAction: true,
+                        child: const Text('Cancel'),
+                      ),
+                    );
+                  },
+                );
+                if (selected != null) widget.onSelected(selected);
+              },
+        color: background,
+        borderRadius: radius,
+        child: widget.isIconButton
+            ? Icon(
+                CupertinoIcons.ellipsis,
+                size: widget.buttonIcon?.size,
+                color: widget.buttonIcon?.color,
+              )
+            : Text(widget.buttonLabel ?? ''),
+      );
+
+      // Ensure width/height match our native variant expectations
       return SizedBox(
         height: widget.height,
         width: widget.isIconButton && widget.round
             ? (widget.width ?? widget.height)
             : null,
-        child: CupertinoButton(
-          padding: widget.isIconButton
-              ? const EdgeInsets.all(4)
-              : const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          onPressed: () async {
-            final selected = await showCupertinoModalPopup<int>(
-              context: context,
-              builder: (ctx) {
-                return CupertinoActionSheet(
-                  title: widget.buttonLabel != null
-                      ? Text(widget.buttonLabel!)
-                      : null,
-                  actions: [
-                    for (var i = 0; i < widget.items.length; i++)
-                      if (widget.items[i] is CNPopupMenuItem)
-                        CupertinoActionSheetAction(
-                          onPressed: () => Navigator.of(ctx).pop(i),
-                          child: Text(
-                            (widget.items[i] as CNPopupMenuItem).label,
-                          ),
-                        )
-                      else
-                        const SizedBox(height: 8),
-                  ],
-                  cancelButton: CupertinoActionSheetAction(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    isDefaultAction: true,
-                    child: const Text('Cancel'),
-                  ),
-                );
-              },
-            );
-            if (selected != null) widget.onSelected(selected);
-          },
-          child: widget.isIconButton
-              ? Icon(CupertinoIcons.ellipsis, size: widget.buttonIcon?.size)
-              : Text(widget.buttonLabel ?? ''),
-        ),
+        child: inner,
       );
     }
 

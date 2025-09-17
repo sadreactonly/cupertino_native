@@ -103,16 +103,24 @@ class _CNTabBarState extends State<CNTabBar> {
 
   @override
   Widget build(BuildContext context) {
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      // Simple Flutter fallback using CupertinoTabBar for non-Apple platforms.
+    // If covered by a modal/sheet, use a Flutter placeholder tab bar to avoid
+    // z-order issues of platform views over Flutter overlays.
+    final route = ModalRoute.of(context);
+    final isCoveredByModal = route?.isCurrent != true;
+    if (isCoveredByModal ||
+        !(defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      // Simple Flutter fallback using CupertinoTabBar for non-Apple platforms
+      // and when this route is covered by a modal.
       return SizedBox(
         height: widget.height,
         child: CupertinoTabBar(
           items: [
             for (final item in widget.items)
               BottomNavigationBarItem(
-                icon: Icon(CupertinoIcons.circle),
+                icon: Icon(
+                  item.icon != null ? CupertinoIcons.circle : CupertinoIcons.circle,
+                ),
                 label: item.label,
               ),
           ],

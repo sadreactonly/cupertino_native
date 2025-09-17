@@ -102,8 +102,14 @@ class _CNSegmentedControlState extends State<CNSegmentedControl> {
 
   @override
   Widget build(BuildContext context) {
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
+    final route = ModalRoute.of(context);
+    final isCoveredByModal = route?.isCurrent != true;
+
+    if (isCoveredByModal ||
+        !(defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      // Flutter placeholder (or non-Apple fallback): use CupertinoSegmentedControl
+      // and approximate height via SizedBox wrapper. Disable when covered.
       return SizedBox(
         height: widget.height,
         child: CupertinoSegmentedControl<int>(
@@ -112,9 +118,10 @@ class _CNSegmentedControlState extends State<CNSegmentedControl> {
               i: Text(widget.labels[i]),
           },
           groupValue: widget.selectedIndex,
-          onValueChanged: widget.enabled
-              ? (i) => widget.onValueChanged(i)
-              : (_) {},
+          onValueChanged: (isCoveredByModal || !widget.enabled)
+              ? null
+              : (i) => widget.onValueChanged(i),
+          selectedColor: widget.color,
         ),
       );
     }

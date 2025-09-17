@@ -157,17 +157,26 @@ class _CNSliderState extends State<CNSlider> {
 
   @override
   Widget build(BuildContext context) {
-    // Fallback to Flutter Slider on unsupported platforms.
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
+    // Use a Flutter placeholder when this route is covered by a modal/sheet
+    // to prevent platform views from drawing above overlays.
+    final route = ModalRoute.of(context);
+    final isCoveredByModal = route?.isCurrent != true;
+
+    if (isCoveredByModal ||
+        !(defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
       return SizedBox(
         height: widget.height,
         width: double.infinity,
-        child: Slider(
+        child: CupertinoSlider(
           value: widget.value.clamp(widget.min, widget.max).toDouble(),
           min: widget.min,
           max: widget.max,
-          onChanged: widget.enabled ? widget.onChanged : null,
+          onChanged: (isCoveredByModal || !widget.enabled)
+              ? null
+              : widget.onChanged,
+          activeColor: _effectiveTrackTint,
+          thumbColor: _effectiveThumbTint,
         ),
       );
     }

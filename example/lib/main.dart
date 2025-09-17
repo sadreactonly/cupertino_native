@@ -7,6 +7,7 @@ import 'demos/tab_bar.dart';
 import 'demos/icon.dart';
 import 'demos/popup_menu_button.dart';
 import 'demos/button.dart';
+import 'demos/alert_dialog.dart';
 
 void main() {
   runApp(const MyApp());
@@ -133,6 +134,18 @@ class HomePage extends StatelessWidget {
                 onTap: () {
                   Navigator.of(context).push(
                     CupertinoPageRoute(builder: (_) => const SliderDemoPage()),
+                  );
+                },
+              ),
+              CupertinoListTile(
+                title: Text('Alert Dialog'),
+                leading: CNIcon(
+                  symbol: CNSymbol('exclamationmark.triangle', color: accentColor),
+                ),
+                trailing: CupertinoListTileChevron(),
+                onTap: () {
+                  Navigator.of(context).push(
+                    CupertinoPageRoute(builder: (_) => const AlertDialogDemoPage()),
                   );
                 },
               ),

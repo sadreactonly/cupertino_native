@@ -113,20 +113,12 @@ class _CNSwitchState extends State<CNSwitch> {
 
   @override
   Widget build(BuildContext context) {
-    // Fallback to Flutter Switch on unsupported platforms.
-    if (!(defaultTargetPlatform == TargetPlatform.iOS ||
-        defaultTargetPlatform == TargetPlatform.macOS)) {
-      return SizedBox(
-        height: widget.height,
-        child: Switch(
-          value: widget.value,
-          onChanged: widget.enabled ? widget.onChanged : null,
-        ),
-      );
-    }
+    // If this route is covered by a modal/sheet, avoid embedding a platform
+    // view which would draw over the overlay. Use a Flutter placeholder that
+    // matches native sizing and tint.
+    final route = ModalRoute.of(context);
+    final isCoveredByModal = route?.isCurrent != true;
 
-    const viewType = 'CupertinoNativeSwitch';
-    // Platform views expand to the biggest size in unconstrained axes.
     // When placed in a Row, width can be unconstrained which would cause
     // the platform view to try to expand to Infinity. Provide a finite
     // width based on the native switch aspect ratio to avoid layout
@@ -138,6 +130,30 @@ class _CNSwitchState extends State<CNSwitch> {
     }
 
     final double width = estimatedWidthFor(widget.height);
+
+    // Flutter placeholder for covered routes or non-Apple platforms.
+    if (isCoveredByModal ||
+        !(defaultTargetPlatform == TargetPlatform.iOS ||
+            defaultTargetPlatform == TargetPlatform.macOS)) {
+      return SizedBox(
+        height: widget.height,
+        width: width,
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: CupertinoSwitch(
+            value: widget.value,
+            onChanged: (isCoveredByModal || !widget.enabled)
+                ? null
+                : widget.onChanged,
+            activeColor: _effectiveColor,
+          ),
+        ),
+      );
+    }
+
+    const viewType = 'CupertinoNativeSwitch';
+    // Platform views expand to the biggest size in unconstrained axes.
+    // Native platform view path
     final creationParams = <String, dynamic>{
       'value': widget.value,
       'enabled': widget.enabled,
